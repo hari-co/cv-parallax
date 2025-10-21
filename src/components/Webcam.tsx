@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
+import useFaceDetector from "../hooks/useFaceDetector";
 
 const Webcam: React.FC = () => {
-    const video = useRef<HTMLVideoElement | null>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const detectorRef = useFaceDetector();
 
     async function getCameraStream() {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -9,6 +11,33 @@ const Webcam: React.FC = () => {
             audio: false
         });
         return stream;
+    }
+
+    let lastVideoTime = -1;
+    
+    async function detectFace() {
+        const v = videoRef.current;
+        const det = (detectorRef as any)?.current;
+        if (!det || !v) return;
+        if (v.readyState < 2 || v.width === 0 || v.height === 0) return;
+
+        if (v.currentTime !== lastVideoTime) {
+            lastVideoTime = v.currentTime;
+
+            try {
+                const res = await det.detectForVideo(v, performance.now());
+                const detections = res.detections;
+                console.log(res);
+                console.log(detections[0]['boundingBox']);
+            } catch(e) {
+                console.error(e);
+            }
+        }
+    }
+
+    function detectionLoop() {
+        detectFace();
+        window.requestAnimationFrame(detectionLoop);
     }
 
     useEffect(() => {
@@ -22,11 +51,11 @@ const Webcam: React.FC = () => {
                     stream.getTracks().forEach(t => t.stop());
                     return;
                 }
-                if (video.current) {
-                    video.current.srcObject = stream;
-                    video.current.muted = true;
-                    video.current.playsInline = true;
-                    await video.current.play().catch(() => {})
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    videoRef.current.muted = true;
+                    videoRef.current.playsInline = true;
+                    await videoRef.current.play().catch(() => {})
                 }
             } catch(e) {
                 console.error(e);
@@ -35,12 +64,14 @@ const Webcam: React.FC = () => {
 
         startCamera().catch(() => {console.error});
 
+        detectionLoop();
+
         return () => {
             mounted = false;
             if (stream) stream.getTracks().forEach(t => t.stop());
-            if (video.current) {
-                video.current.pause();
-                video.current.srcObject = null;
+            if (videoRef.current) {
+                videoRef.current.pause();
+                videoRef.current.srcObject = null;
             }
         }
     }, []);
@@ -49,7 +80,7 @@ const Webcam: React.FC = () => {
     return (
         <div>
             <video
-                ref={video}
+                ref={videoRef}
                 width={1280}
                 height={720}
             />
