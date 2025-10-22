@@ -19,7 +19,7 @@ const Webcam: React.FC = () => {
         const v = videoRef.current;
         const det = (detectorRef as any)?.current;
         if (!det || !v) return;
-        if (v.readyState < 2 || v.width === 0 || v.height === 0) return;
+        if (v.readyState < 2 || v.videoWidth === 0 || v.videoHeight === 0) return;
 
         if (v.currentTime !== lastVideoTime) {
             lastVideoTime = v.currentTime;
@@ -51,10 +51,17 @@ const Webcam: React.FC = () => {
                     stream.getTracks().forEach(t => t.stop());
                     return;
                 }
+
+                if (!videoRef.current) {
+                    const offscreen = document.createElement('video');
+                    offscreen.muted = true;
+                    offscreen.playsInline = true;
+                    offscreen.autoplay = true;
+                    videoRef.current = offscreen;
+                }
+
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
-                    videoRef.current.muted = true;
-                    videoRef.current.playsInline = true;
                     await videoRef.current.play().catch(() => {})
                 }
             } catch(e) {
@@ -79,11 +86,11 @@ const Webcam: React.FC = () => {
 
     return (
         <div>
-            <video
+            {/* <video
                 ref={videoRef}
                 width={1280}
                 height={720}
-            />
+            /> */}
         </div>
     )
 }
