@@ -1,10 +1,14 @@
 import './App.css'
-import Webcam from './components/Webcam';
+import Webcam, { type FacePos } from './components/Webcam';
+import Scene from './components/Scene';
+import { useState } from 'react';
 
 function App() {
+  const [face, setFace] = useState<FacePos | null>(null)
   return (
     <>
-      <Webcam />
+      <Webcam onFace={(r) => setFace(r)}/>
+      <Scene detections={face}/>
     </>
   )
 }

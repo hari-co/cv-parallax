@@ -1,7 +1,15 @@
 import { useEffect, useRef } from "react";
 import useFaceDetector from "../hooks/useFaceDetector";
+import type { Detection } from "@mediapipe/tasks-vision";
 
-const Webcam: React.FC = () => {
+export type FacePos = {
+    x: number;
+    y: number;
+    w: number;
+    h:number;
+};
+
+const Webcam: React.FC<{ onFace?: (r: FacePos | null) => void}> = ({ onFace }) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const detectorRef = useFaceDetector();
 
@@ -14,6 +22,12 @@ const Webcam: React.FC = () => {
     }
 
     let lastVideoTime = -1;
+
+    function normalizeDetection(detection: Detection): FacePos | null {
+        if (!detection.boundingBox) return null;
+        const bb = detection.boundingBox
+        return {x: bb.originX, y: bb.originY, w: bb.width, h: bb.height}
+    }
     
     async function detectFace() {
         const v = videoRef.current;
@@ -27,8 +41,10 @@ const Webcam: React.FC = () => {
             try {
                 const res = await det.detectForVideo(v, performance.now());
                 const detections = res.detections;
-                console.log(res);
-                console.log(detections[0]['boundingBox']);
+                // console.log(res);
+                // console.log(detections[0]['boundingBox']);
+                const normalized = normalizeDetection(detections[0])
+                if (onFace) onFace(normalized);
             } catch(e) {
                 console.error(e);
             }
